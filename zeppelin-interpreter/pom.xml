@@ -28,10 +28,8 @@
     <relativePath>../pom.xml</relativePath>
   </parent>
 
-  <groupId>org.apache.zeppelin</groupId>
   <artifactId>zeppelin-interpreter</artifactId>
   <packaging>jar</packaging>
-  <version>0.10.0-SNAPSHOT</version>
   <name>Zeppelin: Interpreter</name>
   <description>Zeppelin Interpreter</description>
 
@@ -134,6 +132,11 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-pool2</artifactId>
       <version>${commons.pool2.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
     </dependency>
 
     <dependency>

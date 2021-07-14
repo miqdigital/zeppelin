@@ -28,10 +28,8 @@
         <relativePath>../../../zeppelin-plugins</relativePath>
     </parent>
 
-    <groupId>org.apache.zeppelin</groupId>
     <artifactId>notebookrepo-filesystem</artifactId>
     <packaging>jar</packaging>
-    <version>0.10.0-SNAPSHOT</version>
     <name>Zeppelin: Plugin FileSystemNotebookRepo</name>
     <description>NotebookRepo implementation based on Hadoop FileSystem</description>
 
@@ -126,10 +124,6 @@
                         <exclusion>
                             <groupId>com.fasterxml.jackson.core</groupId>
                             <artifactId>jackson-databind</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>joda-time</groupId>
-                            <artifactId>joda-time</artifactId>
                         </exclusion>
                     </exclusions>
                 </dependency>
@@ -237,10 +231,6 @@
                         <exclusion>
                             <groupId>com.fasterxml.jackson.core</groupId>
                             <artifactId>jackson-databind</artifactId>
-                        </exclusion>
-                        <exclusion>
-                            <groupId>joda-time</groupId>
-                            <artifactId>joda-time</artifactId>
                         </exclusion>
                     </exclusions>
                 </dependency>

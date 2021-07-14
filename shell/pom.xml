@@ -27,10 +27,8 @@
     <relativePath>../zeppelin-interpreter-parent/pom.xml</relativePath>
   </parent>
 
-  <groupId>org.apache.zeppelin</groupId>
   <artifactId>zeppelin-shell</artifactId>
   <packaging>jar</packaging>
-  <version>0.10.0-SNAPSHOT</version>
   <name>Zeppelin: Shell interpreter</name>
 
   <properties>
@@ -46,9 +44,9 @@
   <!-- pty4j library not in maven central repository (http://repo.maven.apache.org/maven2) -->
   <repositories>
     <repository>
-      <id>bintray-jetbrains-pty4j</id>
-      <name>bintray</name>
-      <url>https://jetbrains.bintray.com/pty4j</url>
+      <id>jetbrains-intellij-dependencies</id>
+      <name>JetBrains Pty4j Repository</name>
+      <url>https://packages.jetbrains.team/maven/p/ij/intellij-dependencies</url>
     </repository>
   </repositories>
 

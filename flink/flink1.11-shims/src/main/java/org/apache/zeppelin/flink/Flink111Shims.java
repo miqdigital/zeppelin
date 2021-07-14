@@ -79,6 +79,7 @@ import org.apache.flink.table.operations.ddl.DropTableOperation;
 import org.apache.flink.table.operations.ddl.DropTempSystemFunctionOperation;
 import org.apache.flink.table.operations.ddl.DropViewOperation;
 import org.apache.flink.table.sinks.TableSink;
+import org.apache.flink.table.utils.PrintUtils;
 import org.apache.flink.types.Row;
 import org.apache.flink.types.RowKind;
 import org.apache.flink.util.FlinkException;
@@ -443,7 +444,11 @@ public class Flink111Shims extends FlinkShims {
     Map<String, ConfigOption> configOptions = new HashMap<>();
     configOptions.putAll(extractConfigOptions(ExecutionConfigOptions.class));
     configOptions.putAll(extractConfigOptions(OptimizerConfigOptions.class));
-    configOptions.putAll(extractConfigOptions(PythonOptions.class));
+    try {
+      configOptions.putAll(extractConfigOptions(PythonOptions.class));
+    } catch (NoClassDefFoundError e) {
+      LOGGER.warn("No pyflink jars found");
+    }
     configOptions.putAll(extractConfigOptions(TableConfigOptions.class));
     return configOptions;
   }
@@ -462,5 +467,10 @@ public class Flink111Shims extends FlinkShims {
       }
     }
     return configOptions;
+  }
+
+  @Override
+  public String[] rowToString(Object row, Object table, Object tableConfig) {
+    return PrintUtils.rowToString((Row) row);
   }
 }

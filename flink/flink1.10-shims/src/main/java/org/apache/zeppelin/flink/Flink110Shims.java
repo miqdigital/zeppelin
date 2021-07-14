@@ -44,8 +44,8 @@ import org.apache.flink.table.functions.AggregateFunction;
 import org.apache.flink.table.functions.ScalarFunction;
 import org.apache.flink.table.functions.TableAggregateFunction;
 import org.apache.flink.table.functions.TableFunction;
-import org.apache.flink.table.functions.UserDefinedFunction;
 import org.apache.flink.table.sinks.TableSink;
+import org.apache.flink.table.utils.EncodingUtils;
 import org.apache.flink.types.Row;
 import org.apache.flink.util.FlinkException;
 import org.apache.zeppelin.flink.shims110.CollectStreamTableSink;
@@ -296,7 +296,11 @@ public class Flink110Shims extends FlinkShims {
     Map<String, ConfigOption> configOptions = new HashMap<>();
     configOptions.putAll(extractConfigOptions(ExecutionConfigOptions.class));
     configOptions.putAll(extractConfigOptions(OptimizerConfigOptions.class));
-    configOptions.putAll(extractConfigOptions(PythonOptions.class));
+    try {
+      configOptions.putAll(extractConfigOptions(PythonOptions.class));
+    } catch (NoClassDefFoundError e) {
+      LOGGER.warn("No pyflink jars found");
+    }
     return configOptions;
   }
 
@@ -314,5 +318,23 @@ public class Flink110Shims extends FlinkShims {
       }
     }
     return configOptions;
+  }
+
+  @Override
+  public String[] rowToString(Object row, Object table, Object tableConfig) {
+    return rowToString((Row) row);
+  }
+
+  private String[] rowToString(Row row) {
+    final String[] fields = new String[row.getArity()];
+    for (int i = 0; i < row.getArity(); i++) {
+      final Object field = row.getField(i);
+      if (field == null) {
+        fields[i] = "(NULL)";
+      } else {
+        fields[i] = EncodingUtils.objectToString(field);
+      }
+    }
+    return fields;
   }
 }

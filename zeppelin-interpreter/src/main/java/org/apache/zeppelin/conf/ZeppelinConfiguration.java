@@ -53,8 +53,8 @@ import org.slf4j.LoggerFactory;
  * Zeppelin configuration.
  *
  * Sources descending by priority:
- *   - system properties
  *   - environment variables
+ *   - system properties
  *   - configuration file
  */
 public class ZeppelinConfiguration {
@@ -864,13 +864,10 @@ public class ZeppelinConfiguration {
    * @return
    */
   public Map<String, String> getCompleteConfiguration() {
-    Map<String, String> completeConfiguration = new HashMap<>(properties);
-    // Is it possible that we overwrite properties
+    Map<String, String> completeConfiguration = new HashMap<>();
     for (ConfVars c : ConfVars.values()) {
-      if (sysConfig.containsKey(c.getVarName())) {
-        completeConfiguration.put(c.getVarName(), sysConfig.getString(c.getVarName()));
-      } else if (envConfig.containsKey(c.name())) {
-        completeConfiguration.put(c.getVarName(), envConfig.getString(c.name()));
+      if (getString(c) != null){
+        completeConfiguration.put(c.getVarName(), getString(c));
       }
     }
     return completeConfiguration;
@@ -932,7 +929,7 @@ public class ZeppelinConfiguration {
     ZEPPELIN_INTERPRETER_DEP_MVNREPO("zeppelin.interpreter.dep.mvnRepo",
         "https://repo1.maven.org/maven2/"),
     ZEPPELIN_INTERPRETER_CONNECT_TIMEOUT("zeppelin.interpreter.connect.timeout", 60000),
-    ZEPPELIN_INTERPRETER_CONNECTION_POOL_SIZE("zeppelin.interpreter.connection.poolsize", 10),
+    ZEPPELIN_INTERPRETER_CONNECTION_POOL_SIZE("zeppelin.interpreter.connection.poolsize", 100),
     ZEPPELIN_INTERPRETER_GROUP_DEFAULT("zeppelin.interpreter.group.default", "spark"),
     ZEPPELIN_INTERPRETER_OUTPUT_LIMIT("zeppelin.interpreter.output.limit", 1024 * 100),
     ZEPPELIN_INTERPRETER_INCLUDES("zeppelin.interpreter.include", ""),

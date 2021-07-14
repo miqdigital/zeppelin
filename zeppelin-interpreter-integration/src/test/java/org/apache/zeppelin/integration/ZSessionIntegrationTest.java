@@ -69,7 +69,7 @@ public class ZSessionIntegrationTest extends AbstractTestRestApi {
 
     notebook = TestUtils.getInstance(Notebook.class);
     sparkHome = DownloadUtils.downloadSpark("2.4.4", "2.7");
-    flinkHome = DownloadUtils.downloadFlink("1.10.1");
+    flinkHome = DownloadUtils.downloadFlink("1.10.1", "2.11");
   }
 
   @AfterClass
@@ -392,6 +392,7 @@ public class ZSessionIntegrationTest extends AbstractTestRestApi {
   @Test
   public void testZSession_Python() throws Exception {
     Map<String, String> intpProperties = new HashMap<>();
+    intpProperties.put("zeppelin.python.gatewayserver_address", "127.0.0.1");
 
     ZSession session = ZSession.builder()
             .setClientConfig(clientConfig)
@@ -426,6 +427,14 @@ public class ZSessionIntegrationTest extends AbstractTestRestApi {
       assertEquals(result.toString(), Status.FINISHED, result.getStatus());
       assertEquals(1, result.getResults().size());
       assertEquals("TEXT", result.getResults().get(0).getType());
+
+      Map<String, String> localProperties = new HashMap<>();
+      localProperties.put("key 1", "hello world"); // contains whitespace
+      localProperties.put("key,2", "a,b"); // contains comma
+      result = session.execute("1+1", localProperties);
+      assertEquals(result.toString(), Status.FINISHED, result.getStatus());
+      assertEquals(1, result.getResults().size());
+      assertEquals("TEXT", result.getResults().get(0).getType());
     } finally {
       session.stop();
     }
@@ -434,6 +443,7 @@ public class ZSessionIntegrationTest extends AbstractTestRestApi {
   @Test
   public void testZSessionCleanup() throws Exception {
     Map<String, String> intpProperties = new HashMap<>();
+    intpProperties.put("zeppelin.python.gatewayserver_address", "127.0.0.1");
 
     ZSession session = ZSession.builder()
             .setClientConfig(clientConfig)

@@ -172,6 +172,11 @@ You can also set other Spark properties which are not listed in the table. For a
     <td>Max number rows of Spark SQL result to display.</td>
   </tr>
   <tr>
+    <td>zeppelin.spark.run.asLoginUser</td>
+    <td>true</td>
+    <td>Whether run spark job as the zeppelin login user, it is only applied when running spark job in hadoop yarn cluster and shiro is enabled.</td>
+  </tr>
+  <tr>
     <td>zeppelin.spark.printREPLOutput</td>
     <td>true</td>
     <td>Print scala REPL output</td>
@@ -436,11 +441,11 @@ By default, each sql statement would run sequentially in `%spark.sql`. But you c
 2. Configure pools by creating `fairscheduler.xml` under your `SPARK_CONF_DIR`, check the official spark doc [Configuring Pool Properties](http://spark.apache.org/docs/latest/job-scheduling.html#configuring-pool-properties)
 3. Set pool property via setting paragraph property. e.g.
 
-```
-%spark(pool=pool1)
+ ```
+ %spark(pool=pool1)
 
-sql statement
-```
+ sql statement
+ ```
 
 This pool feature is also available for all versions of scala Spark, PySpark. For SparkR, it is only available starting from 2.3.0.
  
@@ -478,7 +483,7 @@ you need to enable user impersonation for more security control. In order the en
 
 **Step 1** Enable user impersonation setting hadoop's `core-site.xml`. E.g. if you are using user `zeppelin` to launch Zeppelin, then add the following to `core-site.xml`, then restart both hdfs and yarn. 
 
-```
+```xml
 <property>
   <name>hadoop.proxyuser.zeppelin.groups</name>
   <value>*</value>

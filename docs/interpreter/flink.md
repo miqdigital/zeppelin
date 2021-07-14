@@ -106,17 +106,17 @@ You can also add and set other flink properties which are not listed in the tabl
     <td>Port of running JobManager. Only used for remote mode</td>
   </tr>
   <tr>
-    <td>flink.jm.memory</td>
-    <td>1024</td>
-    <td>Total number of memory(mb) of JobManager</td>
+    <td>jobmanager.memory.process.size</td>
+    <td>1024m</td>
+    <td>Total number of memory of JobManager, e.g. 1024m. It is official [flink property](https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/deployment/config/)</td>
   </tr>
   <tr>
-    <td>flink.tm.memory</td>
-    <td>1024</td>
-    <td>Total number of memory(mb) of TaskManager</td>
+    <td>taskmanager.memory.process.size</td>
+    <td>1024m</td>
+    <td>Total number of memory of TaskManager, e.g. 1024m. It is official [flink property](https://ci.apache.org/projects/flink/flink-docs-release-1.13/docs/deployment/config/)</td>
   </tr>
   <tr>
-    <td>flink.tm.slot</td>
+    <td>taskmanager.numberOfTaskSlots</td>
     <td>1</td>
     <td>Number of slot per TaskManager</td>
   </tr>
@@ -126,12 +126,12 @@ You can also add and set other flink properties which are not listed in the tabl
     <td>Total number of TaskManagers in local mode</td>
   </tr>
   <tr>
-    <td>flink.yarn.appName</td>
+    <td>yarn.application.name</td>
     <td>Zeppelin Flink Session</td>
     <td>Yarn app name</td>
   </tr>
   <tr>
-    <td>flink.yarn.queue</td>
+    <td>yarn.application.queue</td>
     <td>default</td>
     <td>queue name of yarn app</td>
   </tr>
@@ -145,6 +145,11 @@ You can also add and set other flink properties which are not listed in the tabl
     <td></td>
     <td>Set this value only when your yarn address is mapped to some other address, e.g. some cloud vender will map `http://resource-manager:8088` to `https://xxx-yarn.yy.cn/gateway/kkk/yarn`</td>
   </tr>
+  <tr>
+    <td>zeppelin.flink.run.asLoginUser</td>
+    <td>true</td>
+    <td>Whether run flink job as the zeppelin login user, it is only applied when running flink job in hadoop yarn cluster and shiro is enabled</td>
+  </tr> 
   <tr>
     <td>flink.udf.jars</td>
     <td></td>
@@ -259,13 +264,14 @@ There are 2 planners supported by Flink's table api: `flink` & `blink`.
 Check this [page](https://ci.apache.org/projects/flink/flink-docs-release-1.10/dev/table/common.html#main-differences-between-the-two-planners) for the difference between flink planner and blink planner.
 
 
-## Execution mode (Local/Remote/Yarn)
+## Execution mode (Local/Remote/Yarn/Yarn Application)
 
-Flink in Zeppelin supports 3 execution modes (`flink.execution.mode`):
+Flink in Zeppelin supports 4 execution modes (`flink.execution.mode`):
 
 * Local
 * Remote
 * Yarn
+* Yarn Application
 
 ### Run Flink in Local Mode
 
@@ -283,7 +289,17 @@ Running Flink in remote mode will connect to an existing flink cluster which cou
 In order to run flink in Yarn mode, you need to make the following settings:
 
 * Set `flink.execution.mode` to `yarn`
-* Set `HADOOP_CONF_DIR` in flink's interpreter setting.
+* Set `HADOOP_CONF_DIR` in flink's interpreter setting or `zeppelin-env.sh`.
+* Make sure `hadoop` command is on your PATH. Because internally flink will call command `hadoop classpath` and load all the hadoop related jars in the flink interpreter process
+
+### Run Flink in Yarn Application Mode
+
+In the above yarn mode, there will be a separated flink interpreter process. This may run out of resources when there're many interpreter processes.
+So it is recommended to use yarn application mode if you are using flink 1.11 or afterwards (yarn application mode is only supported after flink 1.11). In this mode flink interpreter runs in the JobManager which is in yarn container.
+In order to run flink in yarn application mode, you need to make the following settings:
+
+* Set `flink.execution.mode` to `yarn-application`
+* Set `HADOOP_CONF_DIR` in flink's interpreter setting or `zeppelin-env.sh`.
 * Make sure `hadoop` command is on your PATH. Because internally flink will call command `hadoop classpath` and load all the hadoop related jars in the flink interpreter process
 
 

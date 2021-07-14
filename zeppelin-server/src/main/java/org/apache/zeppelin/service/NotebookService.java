@@ -27,6 +27,8 @@ import com.google.common.base.Strings;
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -48,6 +50,7 @@ import org.apache.zeppelin.notebook.NoteManager;
 import org.apache.zeppelin.notebook.Notebook;
 import org.apache.zeppelin.notebook.Paragraph;
 import org.apache.zeppelin.notebook.AuthorizationService;
+import org.apache.zeppelin.notebook.exception.NotePathAlreadyExistsException;
 import org.apache.zeppelin.notebook.repo.NotebookRepoWithVersionControl;
 import org.apache.zeppelin.notebook.scheduler.SchedulerService;
 import org.apache.zeppelin.common.Message;
@@ -58,9 +61,6 @@ import org.apache.zeppelin.rest.exception.ParagraphNotFoundException;
 import org.apache.zeppelin.scheduler.Job;
 import org.apache.zeppelin.user.AuthenticationInfo;
 import org.bitbucket.cowwoc.diffmatchpatch.DiffMatchPatch;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
-import org.joda.time.format.DateTimeFormatter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,12 +78,12 @@ public class NotebookService {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(NotebookService.class);
   private static final DateTimeFormatter TRASH_CONFLICT_TIMESTAMP_FORMATTER =
-      DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss");
+          DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-  private ZeppelinConfiguration zConf;
-  private Notebook notebook;
-  private AuthorizationService authorizationService;
-  private SchedulerService schedulerService;
+  private final ZeppelinConfiguration zConf;
+  private final Notebook notebook;
+  private final AuthorizationService authorizationService;
+  private final SchedulerService schedulerService;
 
   @Inject
   public NotebookService(
@@ -256,8 +256,12 @@ public class NotebookService {
           newNotePath = "/" + newNotePath;
         }
       }
-      notebook.moveNote(noteId, newNotePath, context.getAutheInfo());
-      callback.onSuccess(note, context);
+      try {
+        notebook.moveNote(noteId, newNotePath, context.getAutheInfo());
+        callback.onSuccess(note, context);
+      } catch (NotePathAlreadyExistsException e) {
+        callback.onFailure(e, context);
+      }
     } else {
       callback.onFailure(new NoteNotFoundException(noteId), context);
     }
@@ -662,9 +666,7 @@ public class NotebookService {
       throw new IOException("No such note");
     }
     synchronized (this) {
-      if (note.getParagraphCount() < maxParagraph) {
-        return note.addNewParagraph(context.getAutheInfo());
-      } else {
+      if (note.getParagraphCount() >= maxParagraph) {
         boolean removed = false;
         for (int i = 1; i < note.getParagraphCount(); ++i) {
           if (note.getParagraph(i).getStatus().isCompleted()) {
@@ -676,8 +678,8 @@ public class NotebookService {
         if (!removed) {
           throw new IOException("All the paragraphs are not completed, unable to find available paragraph");
         }
-        return note.addNewParagraph(context.getAutheInfo());
       }
+      return note.addNewParagraph(context.getAutheInfo());
     }
   }
 
@@ -699,7 +701,7 @@ public class NotebookService {
       callback.onFailure(new ParagraphNotFoundException(paragraphId), context);
       return;
     }
-    Paragraph returnedParagraph = null;
+    Paragraph returnedParagraph;
     if (note.isPersonalizedMode()) {
       returnedParagraph = note.clearPersonalizedParagraphOutput(paragraphId,
           context.getAutheInfo().getUser());
@@ -767,8 +769,6 @@ public class NotebookService {
     if (configA.get("cron") != null && configB.get("cron") != null && configA.get("cron")
         .equals(configB.get("cron"))) {
       cronUpdated = true;
-    } else if (configA.get("cron") == null && configB.get("cron") == null) {
-      cronUpdated = false;
     } else if (configA.get("cron") != null || configB.get("cron") != null) {
       cronUpdated = true;
     }
@@ -925,7 +925,7 @@ public class NotebookService {
         callback)) {
       return;
     }
-    Note revisionNote = null;
+    Note revisionNote;
     if (revisionId.equals("Head")) {
       revisionNote = note;
     } else {
@@ -1019,7 +1019,7 @@ public class NotebookService {
     }
     String destNotePath = "/" + NoteManager.TRASH_FOLDER + note.getPath();
     if (notebook.containsNote(destNotePath)) {
-      destNotePath = destNotePath + " " + TRASH_CONFLICT_TIMESTAMP_FORMATTER.print(new DateTime());
+      destNotePath = destNotePath + " " + TRASH_CONFLICT_TIMESTAMP_FORMATTER.format(Instant.now());
     }
     notebook.moveNote(noteId, destNotePath, context.getAutheInfo());
     callback.onSuccess(note, context);
@@ -1036,7 +1036,7 @@ public class NotebookService {
     String destFolderPath = "/" + NoteManager.TRASH_FOLDER + "/" + folderPath;
     if (notebook.containsNote(destFolderPath)) {
       destFolderPath = destFolderPath + " " +
-          TRASH_CONFLICT_TIMESTAMP_FORMATTER.print(new DateTime());
+          TRASH_CONFLICT_TIMESTAMP_FORMATTER.format(Instant.now());
     }
 
     notebook.moveFolder("/" + folderPath, destFolderPath, context.getAutheInfo());

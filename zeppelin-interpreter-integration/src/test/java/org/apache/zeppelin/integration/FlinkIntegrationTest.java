@@ -59,13 +59,16 @@ public abstract class FlinkIntegrationTest {
   private static InterpreterSettingManager interpreterSettingManager;
 
   private String flinkVersion;
+  private String scalaVersion;
   private String hadoopHome;
   private String flinkHome;
 
-  public FlinkIntegrationTest(String flinkVersion) {
+  public FlinkIntegrationTest(String flinkVersion, String scalaVersion) {
     LOGGER.info("Testing FlinkVersion: " + flinkVersion);
+    LOGGER.info("Testing ScalaVersion: " + scalaVersion);
     this.flinkVersion = flinkVersion;
-    this.flinkHome = DownloadUtils.downloadFlink(flinkVersion);
+    this.scalaVersion = scalaVersion;
+    this.flinkHome = DownloadUtils.downloadFlink(flinkVersion, scalaVersion);
     this.hadoopHome = DownloadUtils.downloadHadoop("2.7.7");
   }
 
@@ -151,6 +154,32 @@ public abstract class FlinkIntegrationTest {
     flinkInterpreterSetting.setProperty("PATH", hadoopHome + "/bin:" + System.getenv("PATH"));
     flinkInterpreterSetting.setProperty("ZEPPELIN_CONF_DIR", zeppelin.getZeppelinConfDir().getAbsolutePath());
     flinkInterpreterSetting.setProperty("flink.execution.mode", "YARN");
+    flinkInterpreterSetting.setProperty("zeppelin.flink.run.asLoginUser", "false");
+
+    testInterpreterBasics();
+
+    // 1 yarn application launched
+    GetApplicationsRequest request = GetApplicationsRequest.newInstance(EnumSet.of(YarnApplicationState.RUNNING));
+    GetApplicationsResponse response = hadoopCluster.getYarnCluster().getResourceManager().getClientRMService().getApplications(request);
+    assertEquals(1, response.getApplicationList().size());
+
+    interpreterSettingManager.close();
+  }
+
+  @Test
+  public void testYarnApplicationMode() throws IOException, InterpreterException, YarnException {
+    if (flinkVersion.startsWith("1.10")) {
+      LOGGER.info("Skip yarn application mode test for flink 1.10");
+      return;
+    }
+    InterpreterSetting flinkInterpreterSetting = interpreterSettingManager.getInterpreterSettingByName("flink");
+    flinkInterpreterSetting.setProperty("HADOOP_CONF_DIR", hadoopCluster.getConfigPath());
+    flinkInterpreterSetting.setProperty("FLINK_HOME", flinkHome);
+    flinkInterpreterSetting.setProperty("PATH", hadoopHome + "/bin:" + System.getenv("PATH"));
+    flinkInterpreterSetting.setProperty("ZEPPELIN_CONF_DIR", zeppelin.getZeppelinConfDir().getAbsolutePath());
+    flinkInterpreterSetting.setProperty("flink.execution.mode", "yarn-application");
+    flinkInterpreterSetting.setProperty("zeppelin.flink.run.asLoginUser", "false");
+
     testInterpreterBasics();
 
     // 1 yarn application launched

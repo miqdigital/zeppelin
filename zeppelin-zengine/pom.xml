@@ -25,24 +25,20 @@
     <artifactId>zeppelin</artifactId>
     <groupId>org.apache.zeppelin</groupId>
     <version>0.10.0-SNAPSHOT</version>
-    <relativePath>..</relativePath>
   </parent>
 
-  <groupId>org.apache.zeppelin</groupId>
   <artifactId>zeppelin-zengine</artifactId>
   <packaging>jar</packaging>
-  <version>0.10.0-SNAPSHOT</version>
   <name>Zeppelin: Zengine</name>
   <description>Zeppelin Zengine</description>
 
   <properties>
     <!--library versions-->
-    <jackrabbit.webdav.version>1.5.2</jackrabbit.webdav.version>
-    <lucene.version>5.3.1</lucene.version>
+    <lucene.version>8.7.0</lucene.version>
     <org.reflections.version>0.9.8</org.reflections.version>
     <xml.apis.version>1.4.01</xml.apis.version>
     <frontend.maven.plugin.version>1.3</frontend.maven.plugin.version>
-    <commons.vfs2.version>2.2</commons.vfs2.version>
+    <commons.vfs2.version>2.6.0</commons.vfs2.version>
     <eclipse.jgit.version>4.5.4.201711221230-r</eclipse.jgit.version>
     <!--test library versions-->
     <google.truth.version>0.27</google.truth.version>
@@ -94,20 +90,14 @@
     </dependency>
 
     <dependency>
-      <groupId>joda-time</groupId>
-      <artifactId>joda-time</artifactId>
-    </dependency>
-
-    <dependency>
       <groupId>org.bouncycastle</groupId>
       <artifactId>bcpkix-jdk15on</artifactId>
     </dependency>
 
-
     <dependency>
-      <groupId>org.apache.jackrabbit</groupId>
-      <artifactId>jackrabbit-webdav</artifactId>
-      <version>${jackrabbit.webdav.version}</version>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-vfs2-jackrabbit1</artifactId>
+      <version>${commons.vfs2.version}</version>
       <exclusions>
         <exclusion>
           <groupId>commons-httpclient</groupId>
@@ -206,6 +196,10 @@
         <exclusion>
           <groupId>org.codehaus.plexus</groupId>
           <artifactId>plexus-utils</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-hdfs-client</artifactId>
         </exclusion>
       </exclusions>
     </dependency>

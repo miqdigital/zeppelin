@@ -95,7 +95,9 @@ public class ExecRemoteInterpreterProcess extends RemoteInterpreterManagedProces
 
     if (!interpreterProcessLauncher.isRunning()) {
       throw new IOException("Fail to launch interpreter process:\n" + interpreterProcessLauncher.getErrorMessage());
-    } else {
+    }
+
+    if (isHadoopClientAvailable()) {
       String launchOutput = interpreterProcessLauncher.getProcessLaunchOutput();
       Matcher m = YARN_APP_PATTER.matcher(launchOutput);
       if (m.find()) {
@@ -103,6 +105,15 @@ public class ExecRemoteInterpreterProcess extends RemoteInterpreterManagedProces
         LOGGER.info("Detected yarn app: {}, add it to YarnAppMonitor", appId);
         YarnAppMonitor.get().addYarnApp(ConverterUtils.toApplicationId(appId), this);
       }
+    }
+  }
+
+  private boolean isHadoopClientAvailable() {
+    try {
+      Class.forName("org.apache.hadoop.yarn.conf.YarnConfiguration");
+      return true;
+    } catch (ClassNotFoundException e) {
+      return false;
     }
   }
 
@@ -178,7 +189,11 @@ public class ExecRemoteInterpreterProcess extends RemoteInterpreterManagedProces
       synchronized (this) {
         long startTime = System.currentTimeMillis();
         long timeoutTime = startTime + timeout;
-        while (state != State.RUNNING && !Thread.currentThread().isInterrupted()) {
+        // RUNNING means interpreter process notify zeppelin-server (onProcessRunning is called)
+        // it is in RUNNING state.
+        // TERMINATED means the launcher fail to launch interpreter process.
+        while (state != State.RUNNING && state != State.TERMINATED
+                && !Thread.currentThread().isInterrupted()) {
           long timetoTimeout = timeoutTime - System.currentTimeMillis();
           if (timetoTimeout <= 0) {
             LOGGER.warn("Ready timeout reached");
@@ -188,7 +203,7 @@ public class ExecRemoteInterpreterProcess extends RemoteInterpreterManagedProces
             wait(timetoTimeout);
           } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            LOGGER.error("waitForReady interrupted", e);
+            LOGGER.warn("waitForReady interrupted", e);
           }
         }
       }
@@ -209,11 +224,18 @@ public class ExecRemoteInterpreterProcess extends RemoteInterpreterManagedProces
     @Override
     public void onProcessComplete(int exitValue) {
       LOGGER.warn("Process is exited with exit value {}", exitValue);
-      if (getEnv().getOrDefault("ZEPPELIN_SPARK_YARN_CLUSTER", "false").equals("false")) {
+      if (isSparkYarnClusterMode()) {
         // don't call notify in yarn-cluster mode
         synchronized (this) {
           notifyAll();
         }
+      } else if (isFlinkYarnApplicationMode() && exitValue == 0) {
+        // Don't update transition state when flink launcher process exist
+        // in yarn application mode.
+        synchronized (this) {
+          notifyAll();
+        }
+        return;
       }
       // For yarn-cluster mode, client process will exit with exit value 0
       // after submitting spark app. So don't move to TERMINATED state when exitValue
@@ -223,6 +245,16 @@ public class ExecRemoteInterpreterProcess extends RemoteInterpreterManagedProces
       } else {
         transition(State.COMPLETED);
       }
+    }
+
+    private boolean isSparkYarnClusterMode() {
+      return Boolean.parseBoolean(
+              getEnv().getOrDefault("ZEPPELIN_SPARK_YARN_CLUSTER", "false"));
+    }
+
+    private boolean isFlinkYarnApplicationMode() {
+      return Boolean.parseBoolean(
+              getEnv().getOrDefault("ZEPPELIN_FLINK_YARN_APPLICATION", "false"));
     }
 
     @Override

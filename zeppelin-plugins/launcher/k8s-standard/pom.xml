@@ -28,16 +28,14 @@
         <relativePath>../../../zeppelin-plugins</relativePath>
     </parent>
 
-    <groupId>org.apache.zeppelin</groupId>
     <artifactId>launcher-k8s-standard</artifactId>
     <packaging>jar</packaging>
-    <version>0.10.0-SNAPSHOT</version>
     <name>Zeppelin: Plugin Kubernetes StandardLauncher</name>
     <description>Launcher implementation to run interpreters on Kubernetes</description>
 
     <properties>
         <plugin.name>Launcher/K8sStandardInterpreterLauncher</plugin.name>
-        <kubernetes.client.version>4.10.2</kubernetes.client.version>
+        <kubernetes.client.version>5.3.1</kubernetes.client.version>
         <jinjava.version>2.5.4</jinjava.version>
     </properties>
 

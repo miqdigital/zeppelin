@@ -24,6 +24,15 @@ function usage() {
     echo "usage) $0 -p <port> -r <intp_port> -d <interpreter dir to load> -l <local interpreter repo dir to load> -g <interpreter group name>"
 }
 
+function downloadInterpreterLibraries() {
+    mkdir -p ${LOCAL_INTERPRETER_REPO}
+    IFS=' ' read -r -a JAVA_INTP_OPTS_ARRAY <<< "${JAVA_INTP_OPTS}"
+    ZEPPELIN_DOWNLOADER="org.apache.zeppelin.interpreter.remote.RemoteInterpreterDownloader"
+    INTERPRETER_DOWNLOAD_COMMAND+=("${ZEPPELIN_RUNNER}" "${JAVA_INTP_OPTS_ARRAY[@]}" "-cp" "${ZEPPELIN_INTP_CLASSPATH_OVERRIDES}:${ZEPPELIN_INTP_CLASSPATH}" "${ZEPPELIN_DOWNLOADER}" "${CALLBACK_HOST}" "${PORT}" "${INTERPRETER_SETTING_NAME}" "${LOCAL_INTERPRETER_REPO}")
+    echo "Interpreter download command: ${INTERPRETER_DOWNLOAD_COMMAND[@]}"
+    eval "${INTERPRETER_DOWNLOAD_COMMAND[@]}"
+}
+
 # pre-requisites for checking that we're running in container
 if [ -f /proc/self/cgroup ] && [ -n "$(command -v getent)" ]; then
     # checks if we're running in container...
@@ -109,12 +118,17 @@ if [[ -d "${ZEPPELIN_HOME}/zeppelin-zengine/target/test-classes" ]]; then
 fi
 
 addJarInDirForIntp "${ZEPPELIN_HOME}/zeppelin-interpreter-shaded/target"
-addJarInDirForIntp "${INTERPRETER_DIR}"
 
 HOSTNAME=$(hostname)
 ZEPPELIN_SERVER=org.apache.zeppelin.interpreter.remote.RemoteInterpreterServer
 
 INTERPRETER_ID=$(basename "${INTERPRETER_DIR}")
+if [[ "${INTERPRETER_ID}" != "flink" ]]; then
+  # don't add interpreter jar for flink, FlinkInterpreterLauncher will choose the right interpreter jar based
+  # on scala version of current FLINK_HOME.
+  addJarInDirForIntp "${INTERPRETER_DIR}"
+fi
+
 ZEPPELIN_PID="${ZEPPELIN_PID_DIR}/zeppelin-interpreter-${INTP_GROUP_ID}-${ZEPPELIN_IDENT_STRING}-${HOSTNAME}-${PORT}.pid"
 
 if [[ "${ZEPPELIN_INTERPRETER_LAUNCHER}" == "yarn" ]]; then
@@ -238,7 +252,7 @@ elif [[ "${INTERPRETER_ID}" == "flink" ]]; then
   addEachJarInDirRecursiveForIntp "${FLINK_HOME}/lib"
 
   FLINK_PYTHON_JAR=$(find "${FLINK_HOME}/opt" -name 'flink-python_*.jar')
-  ZEPPELIN_INTP_CLASSPATH+=":${FLINK_PYTHON_JAR}"
+  ZEPPELIN_INTP_CLASSPATH+=":${FLINK_PYTHON_JAR}:${FLINK_APP_JAR}"
 
   if [[ -n "${HADOOP_CONF_DIR}" ]] && [[ -d "${HADOOP_CONF_DIR}" ]]; then
     ZEPPELIN_INTP_CLASSPATH+=":${HADOOP_CONF_DIR}"
@@ -267,6 +281,7 @@ elif [[ "${INTERPRETER_ID}" == "flink" ]]; then
 
 fi
 
+downloadInterpreterLibraries
 addJarInDirForIntp "${LOCAL_INTERPRETER_REPO}"
 
 if [[ -n "$ZEPPELIN_IMPERSONATE_USER" ]]; then
@@ -289,6 +304,9 @@ if [[ -n "${SPARK_SUBMIT}" ]]; then
   else
     INTERPRETER_RUN_COMMAND+=("${SPARK_SUBMIT}" "--class" "${ZEPPELIN_SERVER}" "--driver-class-path" "${ZEPPELIN_INTP_CLASSPATH_OVERRIDES}:${ZEPPELIN_INTP_CLASSPATH}" "--driver-java-options" "${JAVA_INTP_OPTS}" "${SPARK_SUBMIT_OPTIONS_ARRAY[@]}" "${ZEPPELIN_SPARK_CONF_ARRAY[@]}" "${SPARK_APP_JAR}" "${CALLBACK_HOST}" "${PORT}" "${INTP_GROUP_ID}" "${INTP_PORT}")
   fi
+elif [[ "${ZEPPELIN_FLINK_YARN_APPLICATION}" == "true" ]]; then
+  IFS=' ' read -r -a ZEPPELIN_FLINK_YARN_APPLICATION_CONF_ARRAY <<< "${ZEPPELIN_FLINK_YARN_APPLICATION_CONF}"
+  INTERPRETER_RUN_COMMAND+=("${FLINK_HOME}/bin/flink" "run-application" "-c" "${ZEPPELIN_SERVER}" "-t" "yarn-application" "${ZEPPELIN_FLINK_YARN_APPLICATION_CONF_ARRAY[@]}" "${FLINK_APP_JAR}" "${CALLBACK_HOST}" "${PORT}" "${INTP_GROUP_ID}" "${INTP_PORT}")
 else
   IFS=' ' read -r -a JAVA_INTP_OPTS_ARRAY <<< "${JAVA_INTP_OPTS}"
   IFS=' ' read -r -a ZEPPELIN_INTP_MEM_ARRAY <<< "${ZEPPELIN_INTP_MEM}"
@@ -296,5 +314,7 @@ else
 fi
 
 # Don't remove this echo, it is for diagnose, this line of output will be redirected to java log4j output.
-echo "Interpreter launch command: ${INTERPRETER_RUN_COMMAND[@]}"
+# Output that starts with `[INFO]` will be redirected to log4j INFO output. Other outputs from interpreter.sh
+# will be redirected to log4j DEBUG output.
+echo "[INFO] Interpreter launch command: ${INTERPRETER_RUN_COMMAND[@]}"
 exec "${INTERPRETER_RUN_COMMAND[@]}"
